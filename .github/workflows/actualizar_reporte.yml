@@ -2,21 +2,14 @@ name: Actualizar Reporte SIRE vs SAP
 
 on:
   schedule:
-    - cron: '5 13 * * *'     # Todos los días 8:05am hora Perú (UTC-5 = 13:05 UTC)
-  workflow_dispatch:           # Botón manual desde la pestaña Actions
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+    - cron: '5 13 * * *'
+  workflow_dispatch:
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Descargar repositorio
@@ -37,7 +30,6 @@ jobs:
           python3 - << 'EOF'
           import requests, os, sys
           fid = os.environ['GDRIVE_SIRE_ID']
-          print(f"📥 Descargando SIRE.txt...")
           s = requests.Session()
           url = f"https://drive.google.com/uc?export=download&id={fid}&confirm=t"
           r = s.get(url, stream=True)
@@ -45,12 +37,12 @@ jobs:
               if 'download_warning' in k:
                   r = s.get(url+f"&confirm={v}", stream=True); break
           if r.status_code != 200:
-              print(f"❌ Error {r.status_code}"); sys.exit(1)
+              print(f"Error {r.status_code}"); sys.exit(1)
           with open('SIRE.txt','wb') as f:
               for chunk in r.iter_content(32768): f.write(chunk)
           size = os.path.getsize('SIRE.txt')
-          print(f"✅ SIRE.txt: {size:,} bytes")
-          if size < 100: print("❌ Archivo muy pequeño"); sys.exit(1)
+          print(f"SIRE.txt: {size:,} bytes")
+          if size < 100: sys.exit(1)
           EOF
 
       - name: Descargar SAP.xlsx desde Google Drive
@@ -60,7 +52,6 @@ jobs:
           python3 - << 'EOF'
           import requests, os, sys
           fid = os.environ['GDRIVE_SAP_ID']
-          print(f"📥 Descargando SAP.xlsx...")
           s = requests.Session()
           url = f"https://drive.google.com/uc?export=download&id={fid}&confirm=t"
           r = s.get(url, stream=True)
@@ -68,38 +59,23 @@ jobs:
               if 'download_warning' in k:
                   r = s.get(url+f"&confirm={v}", stream=True); break
           if r.status_code != 200:
-              print(f"❌ Error {r.status_code}"); sys.exit(1)
+              print(f"Error {r.status_code}"); sys.exit(1)
           with open('SAP.xlsx','wb') as f:
               for chunk in r.iter_content(32768): f.write(chunk)
           size = os.path.getsize('SAP.xlsx')
-          print(f"✅ SAP.xlsx: {size:,} bytes")
-          if size < 1000: print("❌ Archivo muy pequeño"); sys.exit(1)
+          print(f"SAP.xlsx: {size:,} bytes")
+          if size < 1000: sys.exit(1)
           EOF
 
       - name: Generar index.html
         run: python3 generar_reporte.py SIRE.txt SAP.xlsx
 
-      - name: Guardar index.html en repositorio
+      - name: Publicar en repositorio
         run: |
           git config user.name  "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add index.html
-          git diff --cached --quiet && echo "⚠️ Sin cambios" || \
-            git commit -m "Reporte actualizado $(date +'%d/%m/%Y %H:%M') hora Perú"
-          git push
-
-      - name: Subir a GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: '.'
-
-  deploy:
-    needs: actualizar
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git diff --cached --quiet && echo "Sin cambios" || \
+            git commit -m "Reporte actualizado $(date +'%d/%m/%Y %H:%M')"
+          git pull --rebase origin main
+          git push origin main
