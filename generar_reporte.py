@@ -40,7 +40,7 @@ A_TIPO=5; A_SERIE=6; A_NRO=8; A_RUC=11
 # SAP:  ignorar tipos 00, 05, 14, 46 siempre
 # SAP:  ignorar cualquier doc con serie que empieza con 00
 TIPOS_SIRE_CON_RUC    = {'01','07','08','30','42'}
-TIPOS_SIRE_SIN_RUC    = {'50','54'}
+TIPOS_SIRE_SIN_RUC    = {'50','53','54'}
 TIPOS_VALIDOS         = TIPOS_SIRE_CON_RUC | TIPOS_SIRE_SIN_RUC
 TIPOS_SAP_IGNORAR     = {'00','0','05','5','14','46'}
 
@@ -77,12 +77,20 @@ def serie_valida_sap(tipo, serie):
     return True
 
 def tipo_label(t):
-    m = {'01':'Factura','07':'Nota de Crédito','08':'Nota de Débito',
-         '30':'Liquidación','42':'Rec. Honorarios'}
+    m = {
+        '01': 'Factura',
+        '07': 'Nota de Crédito',
+        '08': 'Nota de Débito',
+        '30': 'Tarjeta de Crédito/Débito',
+        '42': 'Tarjeta Propia',
+        '50': 'Dec. Única de Aduanas',
+        '53': 'Mensajería / Courier',
+        '54': 'Liquidación de Cobranza',
+    }
     return m.get(t.zfill(2), t)
 
-TIPO_COLOR = {'01':'#1E40AF','07':'#991B1B','08':'#92400E','30':'#166534','42':'#5B21B6','50':'#0E7490','54':'#065F46'}
-TIPO_BG    = {'01':'#EFF6FF','07':'#FEF2F2','08':'#FFFBEB','30':'#F0FDF4','42':'#F5F3FF','50':'#ECFEFF','54':'#F0FDF4'}
+TIPO_COLOR = {'01':'#1E40AF','07':'#991B1B','08':'#92400E','30':'#166534','42':'#5B21B6','50':'#0E7490','53':'#6D28D9','54':'#065F46'}
+TIPO_BG    = {'01':'#EFF6FF','07':'#FEF2F2','08':'#FFFBEB','30':'#F0FDF4','42':'#F5F3FF','50':'#ECFEFF','53':'#F5F3FF','54':'#F0FDF4'}
 
 # ── Detectar período directamente del archivo SIRE ───────────────────────────
 # Lee el período del primer registro válido del TXT (columna 2)
@@ -196,6 +204,9 @@ top10    = sorted(by_prov.items(), key=lambda x: x[1]['total'], reverse=True)[:1
 num_prov = len(by_prov)
 
 # ── JS data ───────────────────────────────────────────────────────────────────
+# ── Ordenar pendientes alfabéticamente por razón social ───────────────────────
+pendientes.sort(key=lambda r: str(r[T_RAZON] or '').strip().upper())
+
 js_data = [{'fecha':r[T_FECHA].strip(),'tipo':r[T_TIPO].strip().zfill(2),
     'serie':r[T_SERIE].strip(),'nro':r[T_NRO].strip(),'ruc':r[T_RUC].strip(),
     'proveedor':r[T_RAZON].strip(),'bi':flt(r[T_BI]),'igv':flt(r[T_IGV]),
@@ -218,7 +229,7 @@ razon_opts = '\n'.join(f'<option value="{r}"></option>'                for r in 
 
 # Tarjetas por tipo
 tipo_cards_html = ''
-for t in ['01','07','08','30','42','50','54']:
+for t in ['01','07','08','30','42','50','53','54']:
     rows_t = by_tipo.get(t, [])
     if not rows_t: continue
     tot = sum(flt(r[T_TOTAL]) for r in rows_t)
@@ -227,7 +238,7 @@ for t in ['01','07','08','30','42','50','54']:
     tipo_cards_html += f"""<div class="tipo-card" style="border-left-color:{col}">
       <div class="tipo-card-lbl">{tipo_label(t)}</div>
       <div class="tipo-card-num" style="color:{col}">{len(rows_t)}</div>
-      <div class="tipo-card-total">S/ {tot:,.2f}</div>
+      <div class="tipo-card-total">{tot:,.2f}</div>
     </div>"""
 
 # Top 10 HTML
@@ -295,7 +306,7 @@ body {{ font-family:var(--sans); background:var(--bg); color:var(--ink); font-si
 .hdr {{
   background: var(--navy);
   border-bottom: 3px solid var(--red);
-  padding: 0 36px;
+  padding: 0 24px;
   display: flex;
   align-items: stretch;
   min-height: 90px;
@@ -441,17 +452,17 @@ body {{ font-family:var(--sans); background:var(--bg); color:var(--ink); font-si
 .tipo-cards {{
   display: flex;
   gap: 10px;
-  padding: 12px 36px 0;
+  padding: 10px 24px 0;
   flex-wrap: wrap;
 }}
 .tipo-card {{
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid #ccc;
+  border-left: 4px solid #ccc;
   border-radius: var(--radius);
-  padding: 12px 16px;
+  padding: 11px 14px;
   box-shadow: var(--shadow-sm);
-  min-width: 120px;
+  min-width: 100px;
   flex: 1;
 }}
 .tipo-card-lbl {{
@@ -464,7 +475,7 @@ body {{ font-family:var(--sans); background:var(--bg); color:var(--ink); font-si
 }}
 .tipo-card-num {{
   font-family: var(--mono);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 500;
   line-height: 1;
   color: var(--ink);
@@ -679,7 +690,7 @@ tbody tr:hover {{ background: #EEF2FA }}
 tbody td {{ padding: 9px 13px; vertical-align: middle }}
 
 .mono  {{ font-family: var(--mono); font-size: 12px }}
-.muted {{ color: var(--ink3) }}
+.muted {{ color: var(--ink2) }}
 .num   {{ text-align: right; font-family: var(--mono); font-size: 13px }}
 .igv   {{ background: #F0F5FF !important }}
 .money {{ font-weight: 600; color: var(--red) }}
@@ -691,13 +702,14 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
   text-overflow: ellipsis;
   font-size: 13px;
 }}
-.col-fecha  {{ width: 86px  }}
-.col-tipo   {{ width: 130px }}
-.col-serie  {{ width: 56px  }}
-.col-ncp    {{ width: 74px  }}
-.col-ruc    {{ width: 106px }}
-.col-total  {{ width: 108px }}
-.col-mon    {{ width: 46px  }}
+.col-fecha  {{ width: 88px  }}
+.col-tipo   {{ width: 120px }}
+.col-serie  {{ width: 52px  }}
+.col-ncp    {{ width: 68px  }}
+.col-ruc    {{ width: 100px }}
+.col-importe{{ width: 14%   }}
+.col-total  {{ width: 14%   }}
+.col-mon    {{ width: 44px  }}
 .empty-td   {{ text-align:center; padding:36px!important; color:var(--ink3); font-size:12px }}
 
 /* Tipo badges */
@@ -714,7 +726,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 
 /* ═══ FOOTER ═════════════════════════════════════════════════════════ */
 .footer {{
-  padding: 14px 36px 24px;
+  padding: 12px 24px 20px;
   font-size: 10px;
   color: var(--ink3);
   border-top: 1px solid var(--border);
@@ -744,7 +756,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
     <div class="hdr-kpi">
       <div class="hdr-kpi-lbl">Total SIRE</div>
       <div class="hdr-kpi-val">{total_sire}</div>
-      <div class="hdr-kpi-sub">Tipos 01·07·08·30·42·50·54</div>
+      <div class="hdr-kpi-sub">Tipos 01·07·08·30·42·50·53·54</div>
     </div>
     <div class="hdr-kpi">
       <div class="hdr-kpi-lbl">Ya en SAP</div>
@@ -920,7 +932,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 
 <div class="footer">
   <span class="footer-brand">SIRE ↔ SAP · Casas y Colores · Contabilidad</span>
-  <span>{periodo} · {len(pendientes)} pendientes de {total_sire} · Tipos 01·07·08·30·42·50·54 · Uso interno</span>
+  <span>{periodo} · {len(pendientes)} pendientes de {total_sire} · Tipos 01·07·08·30·42·50·53·54 · Uso interno</span>
   <span>Actualizado: {now_str}</span>
 </div>
 
@@ -928,7 +940,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 <script>
 const DATA={json.dumps(js_data,ensure_ascii=False)};
 const TOTAL=DATA.length;
-const TIPO_LABEL={json.dumps({t:tipo_label(t) for t in ['01','07','08','30','42','50','54']},ensure_ascii=False)};
+const TIPO_LABEL={json.dumps({t:tipo_label(t) for t in ['01','07','08','30','42','50','53','54']},ensure_ascii=False)};
 const TIPO_COLOR={json.dumps(TIPO_COLOR,ensure_ascii=False)};
 const TIPO_BG={json.dumps(TIPO_BG,ensure_ascii=False)};
 const fmt=v=>v.toLocaleString('es-PE',{{minimumFractionDigits:2,maximumFractionDigits:2}});
@@ -947,20 +959,19 @@ function renderRows(list){{
     return;
   }}
   tb.innerHTML=list.map(d=>{{
-    const sym=d.moneda==='PEN'?'S/':'USD';
     const prov=d.proveedor.length>55?d.proveedor.slice(0,55)+'…':d.proveedor;
     return`<tr>
       <td class="mono col-fecha">${{d.fecha}}</td>
       <td class="col-tipo">${{tipoBadge(d.tipo)}}</td>
       <td class="mono col-serie">${{d.serie}}</td>
       <td class="mono col-ncp">${{d.nro}}</td>
-      <td class="mono muted col-ruc">${{d.ruc}}</td>
+      <td class="mono col-ruc">${{d.ruc}}</td>
       <td class="proveedor-cell" title="${{d.proveedor}}">${{prov}}</td>
-      <td class="num">${{sym}} ${{fmt(d.bi)}}</td>
-      <td class="num igv">${{sym}} ${{fmt(d.igv)}}</td>
-      <td class="num total-cp col-total" style="${{d.total<0?'color:#7B2020;background:#FDF3F2':''}}">
-        ${{d.total<0?'- ':''}}${{sym}} ${{fmt(Math.abs(d.total))}}</td>
-      <td class="mono col-mon" style="font-size:11px">${{d.moneda}}</td>
+      <td class="num col-importe">${{fmt(d.bi)}}</td>
+      <td class="num igv col-importe">${{fmt(d.igv)}}</td>
+      <td class="num total-cp col-importe" style="${{d.total<0?'color:#7B2020;background:#FDF3F2':''}}">
+        ${{d.total<0?'- ':''}}${{fmt(Math.abs(d.total))}}</td>
+      <td class="mono col-mon" style="font-size:12px;font-weight:600">${{d.moneda}}</td>
     </tr>`;
   }}).join('');
 }}
@@ -968,9 +979,9 @@ function renderRows(list){{
 function updateSummary(list){{
   document.getElementById('rc-n').textContent=list.length;
   document.getElementById('badge-count').textContent=list.length+' registros';
-  document.getElementById('s-bi').textContent='S/ '+fmt(list.reduce((a,d)=>a+d.bi,0));
-  document.getElementById('s-igv').textContent='S/ '+fmt(list.reduce((a,d)=>a+d.igv,0));
-  document.getElementById('s-tot').textContent='S/ '+fmt(list.reduce((a,d)=>a+d.total,0));
+  document.getElementById('s-bi').textContent=fmt(list.reduce((a,d)=>a+d.bi,0));
+  document.getElementById('s-igv').textContent=fmt(list.reduce((a,d)=>a+d.igv,0));
+  document.getElementById('s-tot').textContent=fmt(list.reduce((a,d)=>a+d.total,0));
 }}
 
 function getActive(){{
