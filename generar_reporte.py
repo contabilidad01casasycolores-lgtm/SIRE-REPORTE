@@ -844,9 +844,9 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 <!-- TOP PROVEEDORES -->
 <div class="sec">
   <div class="sec-hdr">
-    <span class="sec-title">Top 10 Proveedores — Mayor cantidad de comprobantes pendientes</span>
+    <span class="sec-title">Top 10 — Mayor N° de Comprobantes Pendientes</span>
     <span class="sec-line"></span>
-    <span class="badge red">{num_prov} proveedores</span>
+    <span class="badge red">{num_prov} proveedores en total</span>
   </div>
   <div class="tbl-wrap">
     <table style="min-width:0;table-layout:fixed;width:100%">
@@ -857,7 +857,26 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
         <th class="r tot-h" style="width:20%">Total Pendiente</th>
         <th class="r igv-h" style="width:20%">IGV</th>
       </tr></thead>
-      <tbody>{prov_html}</tbody>
+      <tbody>{prov_html_count}</tbody>
+    </table>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr">
+    <span class="sec-title">Top 10 — Mayores Importes Pendientes</span>
+    <span class="sec-line"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table style="min-width:0;table-layout:fixed;width:100%">
+      <thead><tr>
+        <th style="width:36%">Proveedor / Razón Social</th>
+        <th style="width:18%">Tipos</th>
+        <th class="r" style="width:6%">N° CP</th>
+        <th class="r tot-h" style="width:20%">Total Pendiente</th>
+        <th class="r igv-h" style="width:20%">IGV</th>
+      </tr></thead>
+      <tbody>{prov_html_amount}</tbody>
     </table>
   </div>
 </div>
