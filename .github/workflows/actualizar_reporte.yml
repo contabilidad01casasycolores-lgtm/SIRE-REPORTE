@@ -2,14 +2,21 @@ name: Actualizar Reporte SIRE vs SAP
 
 on:
   schedule:
-    - cron: '5 13 * * *'   # Lunes–Viernes 9am hora Perú (UTC-5 = 14:00 UTC)
+    - cron: '5 13 * * *'     # Todos los días 8:05am hora Perú (UTC-5 = 13:05 UTC)
   workflow_dispatch:           # Botón manual desde la pestaña Actions
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Descargar repositorio
@@ -72,7 +79,7 @@ jobs:
       - name: Generar index.html
         run: python3 generar_reporte.py SIRE.txt SAP.xlsx
 
-      - name: Publicar en GitHub Pages
+      - name: Guardar index.html en repositorio
         run: |
           git config user.name  "GitHub Actions Bot"
           git config user.email "actions@github.com"
@@ -80,3 +87,19 @@ jobs:
           git diff --cached --quiet && echo "⚠️ Sin cambios" || \
             git commit -m "Reporte actualizado $(date +'%d/%m/%Y %H:%M') hora Perú"
           git push
+
+      - name: Subir a GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+  deploy:
+    needs: actualizar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
