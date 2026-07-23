@@ -501,7 +501,7 @@ body {{ font-family:var(--sans); background:var(--bg); color:var(--ink); font-si
 }}
 .tipo-card-num {{
   font-family: var(--mono);
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 500;
   line-height: 1;
   color: var(--ink);
@@ -774,7 +774,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-brand">
+  <div class="hdr-brand" style="align-items:center;text-align:center">
     <img src="data:image/png;base64,{LOGO_B64}" 
          alt="Casas y Colores" 
          style="height:48px;width:auto;margin-bottom:6px;display:block">
@@ -844,11 +844,15 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 <!-- TOP PROVEEDORES -->
 <div class="sec">
   <div class="sec-hdr">
-    <span class="sec-title">Top 10 — Mayor N° de Comprobantes Pendientes</span>
+    <span class="sec-title">Top 10 Proveedores con más pendientes</span>
     <span class="sec-line"></span>
-    <span class="badge red">{num_prov} proveedores en total</span>
+    <span class="badge red" id="top-badge">{num_prov} proveedores en total</span>
   </div>
-  <div class="tbl-wrap">
+  <div style="display:flex;gap:0;margin-bottom:8px;border-bottom:2px solid var(--border)">
+    <button id="tab-count" onclick="switchTab('count')" style="padding:8px 20px;font-size:11px;font-weight:700;font-family:var(--sans);cursor:pointer;border:none;background:transparent;color:var(--navy);border-bottom:2px solid var(--navy);margin-bottom:-2px;letter-spacing:.5px;text-transform:uppercase">N° Comprobantes</button>
+    <button id="tab-amount" onclick="switchTab('amount')" style="padding:8px 20px;font-size:11px;font-weight:700;font-family:var(--sans);cursor:pointer;border:none;background:transparent;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-2px;letter-spacing:.5px;text-transform:uppercase">Mayores Importes</button>
+  </div>
+  <div id="top-count" class="tbl-wrap">
     <table style="min-width:0;table-layout:fixed;width:100%">
       <thead><tr>
         <th style="width:36%">Proveedor / Razón Social</th>
@@ -857,17 +861,10 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
         <th class="r tot-h" style="width:20%">Total Pendiente</th>
         <th class="r igv-h" style="width:20%">IGV</th>
       </tr></thead>
-      <tbody>{prov_html_count}</tbody>
+      <tbody id="tbody-count"></tbody>
     </table>
   </div>
-</div>
-
-<div class="sec">
-  <div class="sec-hdr">
-    <span class="sec-title">Top 10 — Mayores Importes Pendientes</span>
-    <span class="sec-line"></span>
-  </div>
-  <div class="tbl-wrap">
+  <div id="top-amount" class="tbl-wrap" style="display:none">
     <table style="min-width:0;table-layout:fixed;width:100%">
       <thead><tr>
         <th style="width:36%">Proveedor / Razón Social</th>
@@ -876,7 +873,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
         <th class="r tot-h" style="width:20%">Total Pendiente</th>
         <th class="r igv-h" style="width:20%">IGV</th>
       </tr></thead>
-      <tbody>{prov_html_amount}</tbody>
+      <tbody id="tbody-amount"></tbody>
     </table>
   </div>
 </div>
@@ -1238,6 +1235,41 @@ function exportExcel(){{
   XLSX.writeFile(WB, 'Pendientes_SAP_' + ISO + '.xlsx');
 }}
 
+
+function switchTab(tab) {{
+  document.getElementById('top-count').style.display  = tab==='count'  ? '' : 'none';
+  document.getElementById('top-amount').style.display = tab==='amount' ? '' : 'none';
+  document.getElementById('tab-count').style.color        = tab==='count'  ? 'var(--navy)' : 'var(--ink3)';
+  document.getElementById('tab-amount').style.color       = tab==='amount' ? 'var(--navy)' : 'var(--ink3)';
+  document.getElementById('tab-count').style.borderBottomColor  = tab==='count'  ? 'var(--navy)' : 'transparent';
+  document.getElementById('tab-amount').style.borderBottomColor = tab==='amount' ? 'var(--navy)' : 'transparent';
+}}
+const byProv={{}};
+DATA.forEach(d=>{{
+  let name=d.proveedor;
+  [' SOCIEDAD ANONIMA CERRADA',' SOCIEDAD COMERCIAL DE RESPONSABILIDAD LIMITADA',
+   ' EMPRESA INDIVIDUAL DE RESPONSABILIDAD LIMITADA',
+   ' S.A.C.',' SAC',' S.A.',' SA',' E.I.R.L.',' S.R.L.',' SRL'].forEach(s=>{{name=name.replace(s,'');}});
+  name=name.trim();
+  if(name.length>42)name=name.slice(0,42)+'…';
+  if(!byProv[name])byProv[name]={{count:0,total:0,igv:0,tipos:new Set()}};
+  byProv[name].count++;byProv[name].total+=d.total;byProv[name].igv+=d.igv;byProv[name].tipos.add(d.tipo);
+}});
+const provArr=Object.entries(byProv);
+const top10count=[...provArr].sort((a,b)=>b[1].count-a[1].count).slice(0,10);
+const top10amount=[...provArr].sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+function makeTopRows(list){{
+  return list.map(([n,d])=>`<tr>
+    <td class="proveedor-cell">${{n}}</td>
+    <td style="text-align:left;padding-left:13px">${{[...d.tipos].sort().map(t=>tipoBadge(t)).join('')}}</td>
+    <td class="num">${{d.count}}</td>
+    <td class="num money">S/ ${{fmt(Math.abs(d.total))}}</td>
+    <td class="num igv">S/ ${{fmt(Math.abs(d.igv))}}</td>
+  </tr>`).join('');
+}}
+document.getElementById('tbody-count').innerHTML=makeTopRows(top10count);
+document.getElementById('tbody-amount').innerHTML=makeTopRows(top10amount);
+document.getElementById('top-badge').textContent=Object.keys(byProv).length+' proveedores en total';
 applyFilters();
 </script>
 </body>
