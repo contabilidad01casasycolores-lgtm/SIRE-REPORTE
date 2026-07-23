@@ -117,18 +117,38 @@ periodo = f"{meses_es[_mes]} {_anio}"
 hoy = datetime.now()
 print(f"   Período detectado del SIRE: {periodo_id} → {periodo}")
 
-# ── Leer SIRE TXT ─────────────────────────────────────────────────────────────
-sire_rows = []
+# ── Leer SIRE TXT (parser robusto) ──────────────────────────────────────────
+# Formato: fila normal=80 cols. Con salto: 14 cols (inicio) + 67 cols (resto)
 with open(SIRE_FILE, 'r', encoding='utf-8', errors='ignore') as f:
-    for i, line in enumerate(f):
-        if i == 0: continue          # cabecera
-        cols = line.rstrip('\n').split('|')
-        if len(cols) < 25: continue
-        tipo = cols[T_TIPO].strip()
-        if tipo not in TIPOS_VALIDOS: continue
-        per  = cols[T_PERIODO].strip()
-        if per != periodo_id: continue   # solo mes actual
-        sire_rows.append(cols)
+    raw_lines = f.readlines()
+
+all_rows_raw = []
+i = 1
+while i < len(raw_lines):
+    line = raw_lines[i].rstrip('\n')
+    cols = line.split('|')
+    if len(cols) >= 75:
+        all_rows_raw.append(cols); i += 1
+    elif len(cols) < 20 and i + 1 < len(raw_lines):
+        next_line = raw_lines[i + 1].rstrip('\n')
+        joined_cols = (line + next_line).split('|')
+        if len(joined_cols) >= 75:
+            all_rows_raw.append(joined_cols); i += 2
+        else:
+            all_rows_raw.append(cols); i += 1
+    else:
+        all_rows_raw.append(cols); i += 1
+
+sire_rows = []
+for cols in all_rows_raw:
+    if len(cols) < 25: continue
+    tipo = cols[T_TIPO].strip()
+    if tipo not in TIPOS_VALIDOS: continue
+    serie = cols[T_SERIE].strip()
+    if not serie_valida_sire(tipo, serie): continue
+    per = cols[T_PERIODO].strip()
+    if per != periodo_id: continue
+    sire_rows.append(cols)
 
 print(f"   SIRE período {periodo_id}: {len(sire_rows)} registros válidos")
 
