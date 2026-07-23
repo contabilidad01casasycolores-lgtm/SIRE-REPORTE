@@ -220,7 +220,7 @@ for r in pendientes:
     by_prov[razon]['igv']    += flt(r[T_IGV])
     by_prov[razon]['tipos'].add(r[T_TIPO].strip().zfill(2))
 
-top10    = sorted(by_prov.items(), key=lambda x: x[1]['total'], reverse=True)[:10]
+top10    = sorted(by_prov.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
 num_prov = len(by_prov)
 
 # ── JS data ───────────────────────────────────────────────────────────────────
@@ -835,7 +835,7 @@ tbody td {{ padding: 9px 13px; vertical-align: middle }}
 <!-- TOP PROVEEDORES -->
 <div class="sec">
   <div class="sec-hdr">
-    <span class="sec-title">Top 10 Proveedores con más pendientes</span>
+    <span class="sec-title">Top 10 Proveedores — Mayor cantidad de comprobantes pendientes</span>
     <span class="sec-line"></span>
     <span class="badge red">{num_prov} proveedores</span>
   </div>
