@@ -2,7 +2,7 @@ name: Actualizar Reporte SIRE vs SAP
 
 on:
   schedule:
-    - cron: '0 14 * * 1-5'   # Lunes–Viernes 9am hora Perú (UTC-5 = 14:00 UTC)
+    - cron: '5 13 * * *'   # Lunes–Viernes 9am hora Perú (UTC-5 = 14:00 UTC)
   workflow_dispatch:           # Botón manual desde la pestaña Actions
 
 jobs:
