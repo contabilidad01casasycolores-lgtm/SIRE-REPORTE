@@ -84,12 +84,30 @@ def tipo_label(t):
 TIPO_COLOR = {'01':'#1E40AF','07':'#991B1B','08':'#92400E','30':'#166534','42':'#5B21B6','50':'#0E7490','54':'#065F46'}
 TIPO_BG    = {'01':'#EFF6FF','07':'#FEF2F2','08':'#FFFBEB','30':'#F0FDF4','42':'#F5F3FF','50':'#ECFEFF','54':'#F0FDF4'}
 
-# ── Detectar mes actual ───────────────────────────────────────────────────────
-hoy        = datetime.now()
-periodo_id = f"{hoy.year}{hoy.month:02d}"   # ej: 202607
-meses_es   = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
-               'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
-periodo    = f"{meses_es[hoy.month]} {hoy.year}"
+# ── Detectar período directamente del archivo SIRE ───────────────────────────
+# Lee el período del primer registro válido del TXT (columna 2)
+meses_es = ['','ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+             'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
+
+periodo_id = None
+with open(SIRE_FILE, 'r', encoding='utf-8', errors='ignore') as _f:
+    for _i, _line in enumerate(_f):
+        if _i == 0: continue
+        _cols = _line.rstrip('\n').split('|')
+        if len(_cols) < 3: continue
+        _per = _cols[2].strip()
+        if len(_per) == 6 and _per.isdigit():
+            periodo_id = _per
+            break
+
+if not periodo_id:
+    print("❌ No se pudo detectar el período del archivo SIRE"); sys.exit(1)
+
+_anio = int(periodo_id[:4])
+_mes  = int(periodo_id[4:])
+periodo = f"{meses_es[_mes]} {_anio}"
+hoy = datetime.now()
+print(f"   Período detectado del SIRE: {periodo_id} → {periodo}")
 
 # ── Leer SIRE TXT ─────────────────────────────────────────────────────────────
 sire_rows = []
